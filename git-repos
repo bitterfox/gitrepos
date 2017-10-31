@@ -2,34 +2,69 @@
 
 GITREPOS_ROOT=~/git-repos
 
-helpAndExit () {
-  echo "git-repos clone [url|ssh]"
-  exit
+help () {
+  echo "git-repos"
+  echo "  clone [url]"
+  echo "  list"
+  echo "  cd [domain]/[user]/[repository]"
+  echo "  open [domain]/[user]/[repository]"
 }
 
-if [ -z ${1+x} ]; then
-    helpAndExit
-fi
-
-if [ $1 = "clone" ]; then
-  if [ -z ${2+x} ]; then
-    helpAndExit
+main () {
+  if [ -z ${1+x} ]; then
+    help ; return
   fi
-  regex="git@(.*):(.*)\/(.*)\.git"
-  domain=`echo $2 | sed -E "s/$regex/\1/g"`
-  user=`echo $2 | sed -E "s/$regex/\2/g"`
-  repo=`echo $2 | sed -E "s/$regex/\3/g"`
-  dir="$GITREPOS_ROOT/$domain/$user/$repo"
-  echo "Clone $2 into $dir"
 
-  git clone $2 $dir
-fi
+  if [ $1 = "clone" ]; then
+    if [ -z ${2+x} ]; then
+      help ; return
+    fi
+    regex="git@(.*):(.*)\/(.*)\.git"
+    domain=`echo $2 | sed -E "s/$regex/\1/g"`
+    user=`echo $2 | sed -E "s/$regex/\2/g"`
+    repo=`echo $2 | sed -E "s/$regex/\3/g"`
+    dir="$GITREPOS_ROOT/$domain/$user/$repo"
+    echo "Clone $2 into $dir"
 
+    git clone $2 $dir
+  elif [ $1 = "list" ]; then
+    for dir in `find $GITREPOS_ROOT -mindepth 3 -maxdepth 3`
+    do
+      baselen=`expr length "$GITREPOS_ROOT"`
+      baselen=$(( baselen+2 ))
+      dirlen=`expr length "$dir"`
+      if [ $baselen -lt $dirlen ]; then
+        dir=`echo $dir | cut -c $baselen-$dirlen`
+        regex="^(.*)\/(.*)\/(.*)"
+        domain=`echo $dir | sed -E "s/$regex/\1/g"`
+        user=`echo $dir | sed -E "s/$regex/\2/g"`
+        repo=`echo $dir | sed -E "s/$regex/\3/g"`
+        echo "$domain/$user/$repo"
+      fi
+    done
+  elif [ $1 = "cd" ]; then
+    if [ -z ${2+x} ]; then
+      help ; return
+    fi
+    regex="^(.*)\/(.*)\/(.*)"
+    domain=`echo $2 | sed -E "s/$regex/\1/g"`
+    user=`echo $2 | sed -E "s/$regex/\2/g"`
+    repo=`echo $2 | sed -E "s/$regex/\3/g"`
+    echo "Moving to $domain/$user/$repo"
+    cd "$GITREPOS_ROOT/$domain/$user/$repo"
+    exec $SHELL
+  elif [ $1 = "open" ]; then
+    if [ -z ${2+x} ]; then
+      help ; return
+    fi
+    regex="^(.*)\/(.*)\/(.*)"
+    domain=`echo $2 | sed -E "s/$regex/\1/g"`
+    user=`echo $2 | sed -E "s/$regex/\2/g"`
+    repo=`echo $2 | sed -E "s/$regex/\3/g"`
+    xdg-open "https://$domain/$user/$repo"
+  else
+    help ; return
+  fi
+}
 
-
-
-
-
-
-
-
+main $@
