@@ -67,7 +67,7 @@ main () {
     repo=`echo $2 | sed -E "s/$regex/\3/g"`
     echo "Moving to $domain/$user/$repo"
     cd "$GITREPOS_ROOT/$domain/$user/$repo"
-    exec $SHELL
+    exec $SHELL && exit
   elif [ $1 = "open" ]; then
     if [ -z ${2+x} ]; then
       help ; return
@@ -77,6 +77,8 @@ main () {
     user=`echo $2 | sed -E "s/$regex/\2/g"`
     repo=`echo $2 | sed -E "s/$regex/\3/g"`
     xdg-open "https://$domain/$user/$repo"
+  elif [ $1 = "root" ]; then
+      echo $GITREPOS_ROOT
   else
     help ; return
   fi
