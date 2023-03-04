@@ -46,9 +46,9 @@ main () {
   elif [ $1 = "list" ]; then
     for dir in `find $GITREPOS_ROOT -mindepth 3 -maxdepth 3`
     do
-      baselen=`expr length "$GITREPOS_ROOT"`
+      baselen="${#GITREPOS_ROOT}"
       baselen=$(( baselen+2 ))
-      dirlen=`expr length "$dir"`
+      dirlen="${#dir}"
       if [ $baselen -lt $dirlen ]; then
         dir=`echo $dir | cut -c $baselen-$dirlen`
         regex="^(.*)\/(.*)\/(.*)"
