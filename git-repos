@@ -10,6 +10,52 @@ help () {
   echo "  open [domain]/[user]/[repository]"
 }
 
+count() {
+    domain="$1"
+    user="$2"
+    repo="$3"
+    gitrepos_data_root="$GITREPOS_ROOT/$domain/$user/$repo/.git/gitrepos"
+    mkdir -p "$gitrepos_data_root"
+    if [ -f "$gitrepos_data_root/count" ]; then
+        echo $((`cat $gitrepos_data_root/count` + 1)) > $gitrepos_data_root/count
+    else
+        echo 1 > $gitrepos_data_root/count
+    fi
+}
+
+find_gitrepos_all() {
+    cd $GITREPOS_ROOT
+    for domain in `ls`; do
+        find_gitrepos_domain "$domain"
+    done
+}
+
+find_gitrepos_domain() {
+    cd $GITREPOS_ROOT/$1
+    for user in `ls`; do
+        find_gitrepos_user "$1" "$user"
+    done
+}
+
+find_gitrepos_user() {
+    cd $GITREPOS_ROOT/$1/$2
+    for repo in `ls`; do
+        echo "$1/$2/$repo"
+    done
+}
+
+find_gitrepos() {
+    for dir in `find_gitrepos_all`; do
+        gitrepos_data_root="$GITREPOS_ROOT/$dir/.git/gitrepos"
+        if [ -f "$gitrepos_data_root/count" ]; then
+            echo -n "`cat $gitrepos_data_root/count`"
+        else
+            echo -n "0"
+        fi
+        echo " $dir"
+    done | sort -k 1,1nr -k 2,2 | awk '{print $2}'
+}
+
 main () {
   if [ -z ${1+x} ]; then
     help ; return
@@ -44,34 +90,10 @@ main () {
 
     git clone $2 $dir
   elif [ $1 = "list" ]; then
-    for dir in `find $GITREPOS_ROOT -mindepth 3 -maxdepth 3`
-    do
-      baselen="${#GITREPOS_ROOT}"
-      baselen=$(( baselen+2 ))
-      dirlen="${#dir}"
-      if [ $baselen -lt $dirlen ]; then
-        dir=`echo $dir | cut -c $baselen-$dirlen`
-        regex="^(.*)\/(.*)\/(.*)"
-        domain=`echo $dir | sed -E "s/$regex/\1/g"`
-        user=`echo $dir | sed -E "s/$regex/\2/g"`
-        repo=`echo $dir | sed -E "s/$regex/\3/g"`
-        echo "$domain/$user/$repo"
-      fi
-    done
+    find_gitrepos
   elif [ $1 = "fulllist" ]; then
-    for dir in `find $GITREPOS_ROOT -mindepth 3 -maxdepth 3`
-    do
-      baselen=`expr length "$GITREPOS_ROOT"`
-      baselen=$(( baselen+2 ))
-      dirlen=`expr length "$dir"`
-      if [ $baselen -lt $dirlen ]; then
-        dir=`echo $dir | cut -c $baselen-$dirlen`
-        regex="^(.*)\/(.*)\/(.*)"
-        domain=`echo $dir | sed -E "s/$regex/\1/g"`
-        user=`echo $dir | sed -E "s/$regex/\2/g"`
-        repo=`echo $dir | sed -E "s/$regex/\3/g"`
-        echo "$GITREPOS_ROOT/$domain/$user/$repo"
-      fi
+    for dir in `find_a`; do
+        echo "$GITREPOS_ROOT/$dir"
     done
   elif [ $1 = "cd" ]; then
     if [ -z ${2+x} ]; then
@@ -83,6 +105,7 @@ main () {
     repo=`echo $2 | sed -E "s/$regex/\3/g"`
     echo "Moving to $domain/$user/$repo"
     cd "$GITREPOS_ROOT/$domain/$user/$repo"
+    count "$domain" "$user" "$repo"
     exec $SHELL && exit
   elif [ $1 = "open" ]; then
     if [ -z ${2+x} ]; then
@@ -93,6 +116,12 @@ main () {
     user=`echo $2 | sed -E "s/$regex/\2/g"`
     repo=`echo $2 | sed -E "s/$regex/\3/g"`
     xdg-open "https://$domain/$user/$repo"
+  elif [ $1 = "count" ]; then
+    regex="^(.*)\/(.*)\/(.*)"
+    domain=`echo $2 | sed -E "s/$regex/\1/g"`
+    user=`echo $2 | sed -E "s/$regex/\2/g"`
+    repo=`echo $2 | sed -E "s/$regex/\3/g"`
+    count "$domain" "$user" "$repo"
   elif [ $1 = "root" ]; then
       echo $GITREPOS_ROOT
   else
