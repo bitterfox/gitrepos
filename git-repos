@@ -5,9 +5,20 @@ GITREPOS_ROOT=~/git-repos
 help () {
   echo "git-repos"
   echo "  clone [url]"
+  echo "    Close [url] under $GITREPOS_ROOT"
   echo "  list"
+  echo "    Show all git-repos under $GITREPOS_ROOT with [domain]/[user]/[repository] format"
+  echo "    Sorted by count"
+  echo "  fulllist"
+  echo "    Show all git-repos as fullpath"
   echo "  cd [domain]/[user]/[repository]"
+  echo "    Change current directory under specified repository"
   echo "  open [domain]/[user]/[repository]"
+  echo "    Open https://[domain]/[user]/[repository] in default browser"
+  echo "  root"
+  echo "    Print current git-repos root: $GITREPOS_ROOT"
+  echo "  count"
+  echo "    Increment count for sorting in list commands"
 }
 
 count() {
@@ -92,7 +103,7 @@ main () {
   elif [ $1 = "list" ]; then
     find_gitrepos
   elif [ $1 = "fulllist" ]; then
-    for dir in `find_a`; do
+    for dir in `find_gitrepos`; do
         echo "$GITREPOS_ROOT/$dir"
     done
   elif [ $1 = "cd" ]; then
@@ -115,7 +126,12 @@ main () {
     domain=`echo $2 | sed -E "s/$regex/\1/g"`
     user=`echo $2 | sed -E "s/$regex/\2/g"`
     repo=`echo $2 | sed -E "s/$regex/\3/g"`
-    xdg-open "https://$domain/$user/$repo"
+    url="https://$domain/$user/$repo"
+    if [[ "$(uname)" == "Darwin" ]]; then
+      open "$url"
+    else
+      xdg-open "$url"
+    fi
   elif [ $1 = "count" ]; then
     regex="^(.*)\/(.*)\/(.*)"
     domain=`echo $2 | sed -E "s/$regex/\1/g"`
